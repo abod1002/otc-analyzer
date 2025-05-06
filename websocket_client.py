@@ -1,13 +1,26 @@
+import socketio
 import asyncio
-import websockets
 
-async def connect_to_socket():
-    uri = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
-    async with websockets.connect(uri) as websocket:
-        while True:
-            response = await websocket.recv()
-            print("Received:", response)
+sio = socketio.AsyncClient()
 
-# لتشغيله يدويًا للتجربة:
+@sio.event
+async def connect():
+    print("تم الاتصال بالسيرفر!")
+
+@sio.event
+async def disconnect():
+    print("تم قطع الاتصال")
+
+@sio.on('message')
+async def on_message(data):
+    print("رسالة من السيرفر:", data)
+
+async def start_socket():
+    try:
+        await sio.connect('https://api-eu.po.market', transports=['websocket'])
+        await sio.wait()
+    except Exception as e:
+        print("حدث خطأ أثناء الاتصال:", e)
+
 if __name__ == "__main__":
-    asyncio.run(connect_to_socket())
+    asyncio.run(start_socket())
