@@ -14,3 +14,5 @@ async def home(request: Request):
 @app.on_event("startup")
 async def start_socket():
     asyncio.create_task(connect_to_socket())
+
+# Force deploy
