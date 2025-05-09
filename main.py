@@ -16,3 +16,9 @@ async def startup_event():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+from ws_client import run_ws
+import threading
+
+# تشغيل WebSocket في Thread منفصل
+threading.Thread(target=run_ws, daemon=True).start()
