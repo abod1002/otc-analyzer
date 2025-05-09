@@ -3,3 +3,4 @@ uvicorn[standard]
 jinja2
 websockets
 python-socketio[asyncio-client]
+websocket-client
