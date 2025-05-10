@@ -1,24 +1,13 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-import asyncio
-from websocket_client import start_socket  # استيراد سكربت WebSocket
+from fastapi import FastAPI
+import threading
+from ws_client import start_all
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
-# تشغيل WebSocket عند بدء التطبيق
 @app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(start_socket())
+def start_websockets():
+    threading.Thread(target=start_all, daemon=True).start()
 
-# الصفحة الرئيسية للموقع
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-from ws_client import run_ws
-import threading
-
-# تشغيل WebSocket في Thread منفصل
-threading.Thread(target=run_ws, daemon=True).start()
+@app.get("/")
+def root():
+    return {"message": "سحب الشموع بدأ على 4 عملات OTC. يتم حفظها في مجلد data."}
