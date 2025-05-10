@@ -1,17 +1,40 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>تحليل سوق OTC</title>
+    <title>تحليل سوق Pocket Option OTC</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #eee;
+            font-family: Tahoma, sans-serif;
             text-align: center;
-            margin-top: 50px;
+            padding-top: 50px;
+        }
+        .status {
+            margin-top: 30px;
+            font-size: 20px;
+            color: #0f0;
         }
     </style>
 </head>
 <body>
-    <h1>مرحباً بك في موقع تحليل سوق Pocket Option OTC</h1>
+    <h1>👁️ موقع تحليل سوق Pocket Option OTC</h1>
+    <p>📊 يقوم الموقع بجمع وتحليل الشموع لفهم سلوك السوق.</p>
+
+    <div class="status" id="status">⏳ جاري التحقق من حالة جمع البيانات...</div>
+
+    <script>
+        fetch("/start-collector")
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById("status");
+                status.textContent = `✅ ${data.message}`;
+            })
+            .catch(error => {
+                const status = document.getElementById("status");
+                status.textContent = "❌ فشل في التحقق من حالة جمع البيانات.";
+            });
+    </script>
 </body>
 </html>
