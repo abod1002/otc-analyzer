@@ -3,3 +3,4 @@ uvicorn[standard]
 jinja2
 websockets==15.0.1
 pandas
+websocket-client
