@@ -73,3 +73,41 @@ async def start_collectors():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "status_dict": status_dict})
+
+from fastapi.responses import HTMLResponse
+import os
+
+@app.get("/data", response_class=HTMLResponse)
+async def read_data_files():
+    folder_path = "data"
+    files = os.listdir(folder_path)
+    content = ""
+
+    for file in files:
+        if file.endswith(".csv"):
+            content += f"<h3>{file}</h3><pre>"
+            with open(os.path.join(folder_path, file), "r") as f:
+                lines = f.readlines()[-20:]  # آخر 20 سطر فقط
+                content += "".join(lines)
+            content += "</pre><hr>"
+
+    return f"""
+    <html>
+        <head>
+            <title>عرض بيانات الشموع</title>
+            <style>
+                body {{ background-color: #111; color: #0f0; font-family: monospace; padding: 20px; }}
+                pre {{ background: #000; padding: 10px; border-radius: 5px; }}
+                h3 {{ color: #ff0; }}
+            </style>
+        </head>
+        <body>
+            <h2>📊 آخر الشموع لكل عملة</h2>
+            {content if content else "<p>لا يوجد ملفات بيانات حتى الآن.</p>"}
+        </body>
+    </html>
+    """
+
+git add main.py
+git commit -m "Add /data page to show live candles"
+git push
