@@ -107,5 +107,3 @@ async def read_data_files():
         </body>
     </html>
     """
-
-
