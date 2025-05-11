@@ -2,10 +2,24 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>مراقبة سوق OTC</title>
+    <title>موقع تحليل سوق Pocket Option OTC</title>
+    <style>
+        body { background-color: #111; color: white; text-align: center; font-family: Arial; padding-top: 50px; }
+        h1 { font-size: 24px; }
+        .pair-status { font-size: 20px; margin: 10px 0; }
+        .green { color: lime; }
+        .red { color: red; }
+    </style>
 </head>
 <body>
-    <h1>سوق Pocket Option OTC</h1>
-    <p>{{ message }}</p>
+    <h1>👁️ موقع تحليل سوق <b>Pocket Option OTC</b></h1>
+    <p>يقوم الموقع بجمع وتحليل الشموع لفهم سلوك السوق 📊</p>
+
+    {% for pair, status in status_dict.items() %}
+        <div class="pair-status">
+            {{ pair }}:
+            <span class="{{ 'green' if status == '✅' else 'red' }}">{{ status }}</span>
+        </div>
+    {% endfor %}
 </body>
 </html>
