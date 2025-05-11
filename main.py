@@ -1,3 +1,5 @@
+# تأكد من أن مكتبة websocket-client غير مثبتة! فقط websockets
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,24 +12,15 @@ import csv
 from datetime import datetime
 
 app = FastAPI()
-
-# إعداد المسارات
 templates = Jinja2Templates(directory="templates")
 
-# مجلد لحفظ البيانات
-if os.path.exists("data") and not os.path.isdir("data"):
-    os.remove("data")  # إزالة الملف إذا لم يكن مجلدًا
-if not os.path.exists("data"):
-    os.makedirs("data")
+# إعداد مجلد البيانات
+os.makedirs("data", exist_ok=True)
 
-
-# الأزواج المراد تتبعها
+# الأزواج التي سنراقبها
 PAIRS = ["EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc"]
-
-# حالة الاتصال لكل زوج
 status_dict = {pair: "❌" for pair in PAIRS}
 
-# معالجة بيانات الشمعة
 def handle_candle(pair, candle):
     timestamp = datetime.fromtimestamp(candle["timestamp"])
     row = [
@@ -39,15 +32,13 @@ def handle_candle(pair, candle):
         candle["volume"]
     ]
     file_path = f"data/{pair}.csv"
-    file_exists = os.path.isfile(file_path)
+    write_header = not os.path.isfile(file_path)
+
     with open(file_path, mode="a", newline="") as f:
         writer = csv.writer(f)
-        if not file_exists:
+        if write_header:
             writer.writerow(["time", "open", "close", "high", "low", "volume"])
         writer.writerow(row)
-
-# WebSocket لكل زوج
-import websockets
 
 async def connect_socket(pair):
     url = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
@@ -55,18 +46,19 @@ async def connect_socket(pair):
         "User-Agent": "Mozilla/5.0",
         "Origin": "https://pocketoption.com"
     }
+
     while True:
         try:
             async with websockets.connect(url, extra_headers=headers) as ws:
                 await ws.send("40")
                 msg = await ws.recv()
                 if not msg.startswith("40"):
-                    print(f"{pair}: unexpected handshake: {msg}")
+                    print(f"{pair}: Unexpected handshake: {msg}")
                     continue
 
                 await ws.send(f'42["subscribeCandles",{{"asset":"{pair}","period":300}}]')
                 status_dict[pair] = "✅"
-                print(f"{pair}: ✅ subscribed")
+                print(f"{pair}: ✅ Subscribed")
 
                 while True:
                     msg = await ws.recv()
@@ -80,19 +72,14 @@ async def connect_socket(pair):
             status_dict[pair] = "❌"
             await asyncio.sleep(5)
 
-# تشغيل جميع WebSocket
 @app.on_event("startup")
 async def start_collectors():
     for pair in PAIRS:
         asyncio.create_task(connect_socket(pair))
 
-# الصفحة الرئيسية
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "status_dict": status_dict})
-
-from fastapi.responses import HTMLResponse
-import os
 
 @app.get("/data", response_class=HTMLResponse)
 async def read_data_files():
@@ -104,7 +91,7 @@ async def read_data_files():
         if file.endswith(".csv"):
             content += f"<h3>{file}</h3><pre>"
             with open(os.path.join(folder_path, file), "r") as f:
-                lines = f.readlines()[-20:]  # آخر 20 سطر فقط
+                lines = f.readlines()[-20:]
                 content += "".join(lines)
             content += "</pre><hr>"
 
