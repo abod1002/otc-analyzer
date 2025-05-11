@@ -12,7 +12,6 @@ from datetime import datetime
 app = FastAPI()
 
 # إعداد المسارات
-app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # مجلد لحفظ البيانات
