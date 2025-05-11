@@ -15,7 +15,11 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # مجلد لحفظ البيانات
-os.makedirs("data", exist_ok=True)
+if os.path.exists("data") and not os.path.isdir("data"):
+    os.remove("data")  # إزالة الملف إذا لم يكن مجلدًا
+if not os.path.exists("data"):
+    os.makedirs("data")
+
 
 # الأزواج المراد تتبعها
 PAIRS = ["EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc"]
