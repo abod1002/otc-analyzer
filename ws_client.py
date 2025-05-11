@@ -35,3 +35,7 @@ def start_all():
         thread = threading.Thread(target=start_ws, args=(asset,))
         thread.daemon = True
         thread.start()
+
+async def start_ws_clients():
+    tasks = [save_candles(pair) for pair in PAIRS]
+    await asyncio.gather(*tasks)
