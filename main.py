@@ -47,6 +47,8 @@ def handle_candle(pair, candle):
         writer.writerow(row)
 
 # WebSocket لكل زوج
+import websockets
+
 async def connect_socket(pair):
     url = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
     headers = {
@@ -56,14 +58,12 @@ async def connect_socket(pair):
     while True:
         try:
             async with websockets.connect(url, extra_headers=headers) as ws:
-                # استقبال أولي من السيرفر (handshake)
                 await ws.send("40")
                 msg = await ws.recv()
                 if not msg.startswith("40"):
                     print(f"{pair}: unexpected handshake: {msg}")
                     continue
 
-                # الاشتراك في الشموع
                 await ws.send(f'42["subscribeCandles",{{"asset":"{pair}","period":300}}]')
                 status_dict[pair] = "✅"
                 print(f"{pair}: ✅ subscribed")
