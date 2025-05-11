@@ -49,18 +49,32 @@ def handle_candle(pair, candle):
 # WebSocket لكل زوج
 async def connect_socket(pair):
     url = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Origin": "https://pocketoption.com"
+    }
     while True:
         try:
-            async with websockets.connect(url) as ws:
+            async with websockets.connect(url, extra_headers=headers) as ws:
+                # استقبال أولي من السيرفر (handshake)
                 await ws.send("40")
+                msg = await ws.recv()
+                if not msg.startswith("40"):
+                    print(f"{pair}: unexpected handshake: {msg}")
+                    continue
+
+                # الاشتراك في الشموع
                 await ws.send(f'42["subscribeCandles",{{"asset":"{pair}","period":300}}]')
                 status_dict[pair] = "✅"
+                print(f"{pair}: ✅ subscribed")
+
                 while True:
                     msg = await ws.recv()
                     if msg.startswith('42["candle'):
                         data = json.loads(msg[2:])[1]
                         if "candle" in data:
                             handle_candle(pair, data["candle"])
+
         except Exception as e:
             print(f"Error with {pair}: {e}")
             status_dict[pair] = "❌"
