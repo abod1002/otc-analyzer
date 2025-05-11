@@ -64,7 +64,8 @@ async def connect_socket(pair):
 
                 await ws.send(f'42["subscribeCandles",{{"asset":"{pair}","period":300}}]')
                 status_dict[pair] = "✅"
-                print(f"{pair}: ✅ Subscribed")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] 🟢 {pair}: Subscribed to candles")
+
 
                 while True:
                     msg = await ws.recv()
@@ -74,14 +75,11 @@ async def connect_socket(pair):
                             handle_candle(pair, data["candle"])
 
         except Exception as e:
-            print(f"Error with {pair}: {e}")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔴 Error with {pair}: {e}")
+
             status_dict[pair] = "❌"
             await asyncio.sleep(5)
 
-@app.on_event("startup")
-async def start_collectors():
-    for pair in PAIRS:
-        asyncio.create_task(connect_socket(pair))
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -118,14 +116,9 @@ async def read_data_files():
     </html>
     """
 
-import threading
-from ws_client import listen_to_symbol, symbols, init_csv
+@app.on_event("startup")
+async def start_collectors():
+    for pair in PAIRS:
+        asyncio.create_task(connect_socket(pair))
+        await asyncio.sleep(1)  # تأخير بسيط لتخفيف ضغط الاتصالات
 
-
-# تشغيل WebSocket عند بدء تشغيل FastAPI
-def start_ws_threads():
-    for symbol in symbols:
-        init_csv(symbol)
-        threading.Thread(target=listen_to_symbol, args=(symbol,), daemon=True).start()
-
-start_ws_threads()
