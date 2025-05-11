@@ -15,7 +15,13 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # إعداد مجلد البيانات
+import os
+import shutil
+
+if os.path.exists("data") and not os.path.isdir("data"):
+    os.remove("data")
 os.makedirs("data", exist_ok=True)
+
 
 # الأزواج التي سنراقبها
 PAIRS = ["EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc"]
