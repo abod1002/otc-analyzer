@@ -119,7 +119,8 @@ async def read_data_files():
     """
 
 import threading
-from ws_collector import listen_to_symbol, symbols, init_csv
+from ws_client import listen_to_symbol, symbols, init_csv
+
 
 # تشغيل WebSocket عند بدء تشغيل FastAPI
 def start_ws_threads():
