@@ -3,7 +3,7 @@ uvicorn[standard]
 jinja2
 websockets
 python-socketio[asyncio-client]
-websocket-client
+websockets==15.0.1
 pandas
 fastapi
 uvicorn
