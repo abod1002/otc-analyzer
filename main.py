@@ -108,5 +108,4 @@ async def read_data_files():
     </html>
     """
 
-git commit -m "Add /data page to show live candles"
-git push
+
