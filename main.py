@@ -123,5 +123,5 @@ async def start_collectors():
         await asyncio.sleep(1)  # تأخير بسيط لتخفيف ضغط الاتصالات
 
 
-import websocket
-print(f"📦 websocket-client version: {websocket.__version__}")
+
+# redeploy trigger
