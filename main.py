@@ -122,3 +122,6 @@ async def start_collectors():
         asyncio.create_task(connect_socket(pair))
         await asyncio.sleep(1)  # تأخير بسيط لتخفيف ضغط الاتصالات
 
+
+import websocket
+print(f"📦 websocket-client version: {websocket.__version__}")
