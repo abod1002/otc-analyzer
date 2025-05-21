@@ -122,6 +122,19 @@ async def start_collectors():
         asyncio.create_task(connect_socket(pair))
         await asyncio.sleep(1)  # تأخير بسيط لتخفيف ضغط الاتصالات
 
+from fastapi.responses import JSONResponse
+import pandas as pd
+
+@app.get("/api/candles/{pair}")
+async def get_candles(pair: str):
+    file_path = f"data/{pair}.csv"
+    if not os.path.exists(file_path):
+        return JSONResponse(content={"error": "pair not found"}, status_code=404)
+
+    df = pd.read_csv(file_path)
+    last_rows = df.tail(20)
+    candles = last_rows.to_dict(orient="records")
+    return {"pair": pair, "candles": candles}
 
 
 # redeploy trigger
