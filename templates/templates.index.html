@@ -2,65 +2,82 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>تحليل سوق Pocket Option OTC</title>
+    <title>موقع تحليل سوق Pocket Option OTC</title>
     <style>
-        body { background-color: #111; color: white; font-family: Tahoma; padding: 20px; }
-        h1, h2, h3 { text-align: center; }
+        body {
+            background-color: #111;
+            color: white;
+            text-align: center;
+            font-family: Arial;
+            padding-top: 30px;
+        }
+        h1 { font-size: 24px; }
+        .pair-container {
+            margin: 30px auto;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 10px;
+            width: 90%;
+            background-color: #1c1c1c;
+        }
+        canvas {
+            max-width: 100%;
+        }
         .green { color: lime; }
         .red { color: red; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid #444; padding: 5px; text-align: center; }
-        th { background-color: #333; color: #ff0; }
     </style>
 </head>
 <body>
-    <h1>👁️ تحليل سوق Pocket Option OTC</h1>
-    <p>يتم جمع وتحليل الشموع لايف لفهم سلوك السوق</p>
+    <h1>👁️ موقع تحليل سوق <b>Pocket Option OTC</b></h1>
+    <p>يعرض الموقع حالة الاتصال + آخر الشموع لكل زوج على فريم 5 دقائق.</p>
 
     {% for pair, status in status_dict.items() %}
-        <h2>{{ pair }} - <span class="{{ 'green' if status == '✅' else 'red' }}">{{ status }}</span></h2>
-        <table id="{{ pair }}">
-            <thead>
-                <tr>
-                    <th>الوقت</th>
-                    <th>الفتح</th>
-                    <th>الإغلاق</th>
-                    <th>الأعلى</th>
-                    <th>الأدنى</th>
-                    <th>الحجم</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="pair-container">
+            <h2>{{ pair }} - <span class="{{ 'green' if status == '✅' else 'red' }}">{{ status }}</span></h2>
+            <canvas id="chart_{{ loop.index }}"></canvas>
+        </div>
     {% endfor %}
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const pairs = {{ status_dict.keys() | list | safe }};
-        function updateTables() {
-            pairs.forEach(pair => {
-                fetch(`/api/candles/${pair}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        const tbody = document.querySelector(`#${pair} tbody`);
-                        tbody.innerHTML = "";
-                        data.slice().reverse().forEach(candle => {
-                            const row = `
-                                <tr>
-                                    <td>${candle.time}</td>
-                                    <td>${candle.open}</td>
-                                    <td>${candle.close}</td>
-                                    <td>${candle.high}</td>
-                                    <td>${candle.low}</td>
-                                    <td>${candle.volume}</td>
-                                </tr>`;
-                            tbody.innerHTML += row;
-                        });
-                    });
-            });
-        }
+        const pairs = {{ status_dict | tojson }};
+        let index = 1;
 
-        setInterval(updateTables, 5000); // تحديث كل 5 ثوانٍ
-        updateTables();
+        for (let pair in pairs) {
+            fetch(`/api/candles/${pair}`)
+                .then(res => res.json())
+                .then(data => {
+                    const candles = data.candles;
+                    const labels = candles.map(c => c.time);
+                    const values = candles.map(c => c.close);
+
+                    new Chart(document.getElementById("chart_" + index), {
+                        type: "line",
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: `${pair} - إغلاق`,
+                                data: values,
+                                borderColor: "lime",
+                                backgroundColor: "rgba(0,255,0,0.2)",
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { labels: { color: 'white' } }
+                            },
+                            scales: {
+                                x: { ticks: { color: 'white' } },
+                                y: { ticks: { color: 'white' } }
+                            }
+                        }
+                    });
+
+                    index++;
+                });
+        }
     </script>
 </body>
 </html>
