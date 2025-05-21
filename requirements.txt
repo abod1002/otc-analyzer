@@ -2,4 +2,4 @@ fastapi
 uvicorn[standard]
 jinja2
 pandas
-websockets
+websockets>=10.0
