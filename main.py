@@ -1,52 +1,26 @@
-# تأكد من أن مكتبة websocket-client غير مثبتة! فقط websockets
-
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
 import asyncio
-import websockets
-import json
 import os
 import csv
+import json
 from datetime import datetime
+import websockets
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
-# إعداد مجلد البيانات
-import os
-import shutil
+symbols = ["EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc"]
+tasks = []
 
-if os.path.exists("data") and not os.path.isdir("data"):
-    os.remove("data")
-os.makedirs("data", exist_ok=True)
+# تهيئة ملف CSV إن لم يكن موجود
+def init_csv(symbol):
+    file_path = f"{symbol}.csv"
+    if not os.path.exists(file_path):
+        with open(file_path, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["timestamp", "open", "high", "low", "close"])
 
-
-# الأزواج التي سنراقبها
-PAIRS = ["EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc"]
-status_dict = {pair: "❌" for pair in PAIRS}
-
-def handle_candle(pair, candle):
-    timestamp = datetime.fromtimestamp(candle["timestamp"])
-    row = [
-        timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-        candle["open"],
-        candle["close"],
-        candle["high"],
-        candle["low"],
-        candle["volume"]
-    ]
-    file_path = f"data/{pair}.csv"
-    write_header = not os.path.isfile(file_path)
-
-    with open(file_path, mode="a", newline="") as f:
-        writer = csv.writer(f)
-        if write_header:
-            writer.writerow(["time", "open", "close", "high", "low", "volume"])
-        writer.writerow(row)
-
-async def connect_socket(pair):
+# الاستماع للشموع عبر WebSocket
+async def listen_to_symbol(symbol):
     url = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
     headers = {
         "User-Agent": "Mozilla/5.0",
@@ -56,92 +30,45 @@ async def connect_socket(pair):
     while True:
         try:
             async with websockets.connect(url, extra_headers=headers) as ws:
+                print(f"Connected to {symbol}")
                 await ws.send("40")
-                msg = await ws.recv()
-                if not msg.startswith("40"):
-                    print(f"{pair}: Unexpected handshake: {msg}")
-                    continue
+                await asyncio.sleep(1)
 
-                await ws.send(f'42["subscribeCandles",{{"asset":"{pair}","period":300}}]')
-                status_dict[pair] = "✅"
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] 🟢 {pair}: Subscribed to candles")
-
+                subscribe_msg = f'42["candles_subscribe",{{"pair":"{symbol}","interval":60}}]'
+                await ws.send(subscribe_msg)
 
                 while True:
-                    msg = await ws.recv()
-                    if msg.startswith('42["candle'):
-                        data = json.loads(msg[2:])[1]
-                        if "candle" in data:
-                            handle_candle(pair, data["candle"])
+                    result = await ws.recv()
+                    if result.startswith('42'):
+                        try:
+                            payload = json.loads(result[2:])
+                            if payload[0] == "candles":
+                                candle = payload[1]
+                                timestamp = datetime.utcfromtimestamp(candle["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
+                                data_row = [timestamp, candle["open"], candle["high"], candle["low"], candle["close"]]
 
+                                with open(f"{symbol}.csv", mode="a", newline="") as file:
+                                    writer = csv.writer(file)
+                                    writer.writerow(data_row)
+
+                                print(f"{symbol} candle: {data_row}")
+                        except Exception as e:
+                            print(f"Error parsing message for {symbol}: {e}")
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔴 Error with {pair}: {e}")
-
-            status_dict[pair] = "❌"
+            print(f"Error with {symbol}: {e}")
             await asyncio.sleep(5)
 
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "status_dict": status_dict})
-
-@app.get("/data", response_class=HTMLResponse)
-async def read_data_files():
-    folder_path = "data"
-    files = os.listdir(folder_path)
-    content = ""
-
-    for file in files:
-        if file.endswith(".csv"):
-            content += f"<h3>{file}</h3><pre>"
-            with open(os.path.join(folder_path, file), "r") as f:
-                lines = f.readlines()[-20:]
-                content += "".join(lines)
-            content += "</pre><hr>"
-
-    return f"""
-    <html>
-        <head>
-            <title>عرض بيانات الشموع</title>
-            <style>
-                body {{ background-color: #111; color: #0f0; font-family: monospace; padding: 20px; }}
-                pre {{ background: #000; padding: 10px; border-radius: 5px; }}
-                h3 {{ color: #ff0; }}
-            </style>
-        </head>
-        <body>
-            <h2>📊 آخر الشموع لكل عملة</h2>
-            {content if content else "<p>لا يوجد ملفات بيانات حتى الآن.</p>"}
-        </body>
-    </html>
-    """
-
-@app.on_event("startup")
-async def start_collectors():
-    for pair in PAIRS:
-        asyncio.create_task(connect_socket(pair))
-        await asyncio.sleep(1)  # تأخير بسيط لتخفيف ضغط الاتصالات
-
-from fastapi.responses import JSONResponse
-import pandas as pd
-
-@app.get("/api/candles/{pair}")
-async def get_candles(pair: str):
-    file_path = f"data/{pair}.csv"
-    if not os.path.exists(file_path):
-        return JSONResponse(content={"error": "pair not found"}, status_code=404)
-
-    df = pd.read_csv(file_path)
-    last_rows = df.tail(20)
-    candles = last_rows.to_dict(orient="records")
-    return {"pair": pair, "candles": candles}
-
-from fastapi import FastAPI
-
-app = FastAPI()
-
+# نقطة تشغيل WebSocket عبر FastAPI
 @app.get("/start-collector")
 async def start_collector():
-    return {"message": "Collector started!"}
+    global tasks
+    if tasks:
+        return {"status": "Collector already running."}
 
-# redeploy trigger
+    for symbol in symbols:
+        init_csv(symbol)
+        task = asyncio.create_task(listen_to_symbol(symbol))
+        tasks.append(task)
+        await asyncio.sleep(1)
+
+    return {"status": "Collector started."}
