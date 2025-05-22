@@ -5,10 +5,8 @@ from datetime import datetime
 import os
 import websockets
 
-# إعداد الأزواج
 symbols = ["EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc"]
 
-# إعداد ملفات CSV
 def init_csv(symbol):
     file_path = f"{symbol}.csv"
     if not os.path.exists(file_path):
@@ -16,7 +14,6 @@ def init_csv(symbol):
             writer = csv.writer(file)
             writer.writerow(["timestamp", "open", "high", "low", "close"])
 
-# دالة الاستماع لكل زوج باستخدام async
 async def listen_to_symbol(symbol):
     url = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
     headers = {
@@ -56,7 +53,6 @@ async def listen_to_symbol(symbol):
             print(f"Error with {symbol}: {e}")
             await asyncio.sleep(5)
 
-# تشغيل كل الاتصال كـ async task
 async def main():
     for symbol in symbols:
         init_csv(symbol)
@@ -64,7 +60,7 @@ async def main():
         await asyncio.sleep(1)
 
     while True:
-        await asyncio.sleep(3600)  # إبقاء البرنامج شغال
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())
