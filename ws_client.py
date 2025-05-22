@@ -68,3 +68,13 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+from websocket import create_connection
+
+headers = {
+    "User-Agent": "Mozilla/5.0",
+    # أي هيدر آخر تريده
+}
+# لاحظ: headers هنا لازم تكون على شكل list of strings
+header_list = [f"{k}: {v}" for k, v in headers.items()]
+ws = create_connection("wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket", header=header_list)
