@@ -136,5 +136,12 @@ async def get_candles(pair: str):
     candles = last_rows.to_dict(orient="records")
     return {"pair": pair, "candles": candles}
 
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/start-collector")
+async def start_collector():
+    return {"message": "Collector started!"}
 
 # redeploy trigger
